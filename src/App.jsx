@@ -89,8 +89,9 @@ export default function App() {
 
       {/* ── HERO ── */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1628] via-[#030712] to-[#000d1a]" />
-        <div className="absolute top-0 left-0 w-[600px] h-[400px] bg-cyan-500/8 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/hero-bg.png')" }} />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#030712]/90 via-[#030712]/60 to-[#030712]/30" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#030712]" />
 
         <div className="relative max-w-6xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-16 items-center">
           <div>
