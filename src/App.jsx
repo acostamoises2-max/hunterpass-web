@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import PassHub from "./pages/PassHub";
+import GymPassTicketera from "./pages/GymPassTicketera";
+import GymPassPanel from "./pages/GymPassPanel";
 
 const WA_NUMBER = "5491166242165";
 
@@ -17,6 +21,13 @@ function NavBar() {
           <a href="#servicios" className="hover:text-cyan-400 transition-colors">Servicios</a>
           <a href="#porqueHP" className="hover:text-cyan-400 transition-colors">Por qué HunterPass</a>
           <a href="#paquetes" className="hover:text-cyan-400 transition-colors">Paquetes</a>
+          <Link
+            to="/pass"
+            className="flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            Pases Digitales
+          </Link>
         </div>
         <a
           href="#contacto"
@@ -63,7 +74,7 @@ function PanelMockup() {
   );
 }
 
-export default function App() {
+function LandingPage() {
   const [formData, setFormData] = useState({
     nombre: "", empresa: "", contacto: "", tipoEvento: "", asistentes: "", mensaje: "",
   });
@@ -95,7 +106,6 @@ export default function App() {
 
         <div className="relative max-w-6xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-16 items-center">
           <div>
-            {/* Logo grande en hero */}
             <img
               src="/logo-hunterpass.png"
               alt="HunterPass"
@@ -137,7 +147,25 @@ export default function App() {
               </a>
             </div>
 
-            <div className="flex gap-8 mt-10">
+            {/* CTA Pases Digitales */}
+            <Link
+              to="/pass"
+              className="group mt-4 flex items-center justify-between bg-gradient-to-r from-cyan-400/10 to-transparent border border-cyan-400/20 hover:border-cyan-400/40 rounded-xl px-5 py-4 transition-all"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs bg-cyan-400/20 border border-cyan-400/30 text-cyan-400 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                    Nuevo
+                  </span>
+                </div>
+                <div className="font-bold text-white text-sm">Pases Digitales HunterPass</div>
+                <div className="text-xs text-slate-400 mt-0.5">GymPass · EventPass · CorpPass</div>
+              </div>
+              <span className="text-cyan-400 text-xl group-hover:translate-x-1 transition-transform">→</span>
+            </Link>
+
+            <div className="flex gap-8 mt-6">
               {[["QR", "Ingreso ágil"], ["NFC", "Experiencia premium"], ["DATA", "Métricas reales"]].map(([tech, label]) => (
                 <div key={tech} className="bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3">
                   <div className="font-black text-white">{tech}</div>
@@ -674,5 +702,20 @@ export default function App() {
         WhatsApp directo · +54 9 11 6624-2165
       </a>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/pass" element={<PassHub />} />
+        <Route path="/pass/gym" element={<GymPassTicketera />} />
+        <Route path="/pass/gym/:gymId" element={<GymPassTicketera />} />
+        <Route path="/panel/gym" element={<GymPassPanel />} />
+        <Route path="/panel/gym/:gymId" element={<GymPassPanel />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
