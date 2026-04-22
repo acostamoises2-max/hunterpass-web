@@ -3,24 +3,60 @@ import { Link } from "react-router-dom";
 import { db } from "../lib/firebase";
 import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
 
-const SEED_GYMS = [
+const GO_FUNCIONAL = {
+  id: "go-funcional",
+  name: "GO! Funcional Gym",
+  tagline: "Un lugar donde la salud y el bienestar son prioridad",
+  description: "CrossTraining, Box Libre, Solo Mujeres, Prep. Física Deportiva e Infantil, Funcional y Zumba. Comunidad activa en Navarro, Buenos Aires.",
+  address: "Calle 9 e/ 24 y 26 — Navarro, Buenos Aires",
+  color: "#F5C400",
+  colorDark: "#1a1400",
+  colorText: "#000000",
+  emoji: "GO!",
+  logo: null,
+  instagram: "https://www.instagram.com/go_funcionalgym",
+  disciplines: [
+    "CrossTraining", "Box Libre", "Solo Mujeres",
+    "Prep. Física Deportiva", "Prep. Física Infantil", "Funcional", "Zumba",
+  ],
+  schedule: [
+    { time: "13:30", days: ["Lunes", "Miércoles", "Viernes"], class: "CrossTraining", color: "#F5C400" },
+    { time: "14:00", days: ["Martes", "Jueves"], class: "Box Libre", color: "#f97316" },
+    { time: "14:00", days: ["Martes", "Jueves"], class: "Prep. Física Deportiva", color: "#3b82f6" },
+    { time: "14:30", days: ["Lunes", "Miércoles", "Viernes"], class: "Solo Mujeres", color: "#ec4899" },
+    { time: "15:00", days: ["Martes", "Jueves"], class: "Prep. Física Deportiva", color: "#3b82f6" },
+    { time: "16:00", days: ["Martes", "Jueves"], class: "Solo Mujeres", color: "#ec4899" },
+    { time: "18:00", days: ["Lunes", "Martes", "Jueves", "Viernes"], class: "Prep. Física Infantil", color: "#10b981" },
+    { time: "19:00", days: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"], class: "CrossTraining", color: "#F5C400" },
+    { time: "20:00", days: ["Lunes", "Miércoles"], class: "CrossTraining", color: "#F5C400" },
+    { time: "20:00", days: ["Martes", "Jueves"], class: "Solo Mujeres", color: "#ec4899" },
+    { time: "20:00", days: ["Viernes"], class: "Box Libre", color: "#f97316" },
+    { time: "21:00", days: ["Lunes", "Miércoles"], class: "Box Libre", color: "#f97316" },
+    { time: "21:00", days: ["Martes", "Jueves"], class: "Prep. Física Deportiva", color: "#3b82f6" },
+  ],
+  plans: [
+    { id: "starter", name: "Pack 10 Clases", classes: 10, price: 4500 },
+    { id: "regular", name: "Pack 12 Clases", classes: 12, price: 5200, featured: true },
+    { id: "mensual", name: "Mensual Ilimitado", classes: 20, price: 7800 },
+  ],
+  active: true,
+  createdAt: new Date().toISOString(),
+};
+
+const PLACEHOLDER_GYMS = [
   {
     id: "crossfit-norte",
     name: "CrossFit Norte",
     tagline: "Entrenamiento funcional de élite",
-    description: "El mejor box de CrossFit de la zona norte. Clases WOD diarias, coaches certificados y comunidad de alto rendimiento.",
+    description: "El mejor box de CrossFit de la zona norte.",
     address: "Av. del Libertador 1234, Buenos Aires",
-    color: "#f97316",
-    colorDark: "#431407",
-    emoji: "🔥",
-    logo: null,
+    color: "#f97316", colorDark: "#431407", emoji: "🔥", logo: null,
     plans: [
       { id: "starter", name: "Pack Básico", classes: 10, price: 4500 },
       { id: "regular", name: "Pack Regular", classes: 12, price: 5800 },
       { id: "mensual", name: "Sin Límite", classes: 20, price: 8500 },
     ],
-    active: true,
-    createdAt: "2024-01-01T00:00:00.000Z",
+    active: true, createdAt: "2024-01-01T00:00:00.000Z",
   },
   {
     id: "iron-house",
@@ -28,17 +64,13 @@ const SEED_GYMS = [
     tagline: "Fuerza, disciplina y resultados",
     description: "Gym de musculación y powerlifting con equipamiento de alto nivel.",
     address: "Corrientes 567, Buenos Aires",
-    color: "#8b5cf6",
-    colorDark: "#2e1065",
-    emoji: "💪",
-    logo: null,
+    color: "#8b5cf6", colorDark: "#2e1065", emoji: "💪", logo: null,
     plans: [
       { id: "starter", name: "Pack 10", classes: 10, price: 4200 },
       { id: "regular", name: "Pack 12", classes: 12, price: 5000 },
       { id: "mensual", name: "Mensual", classes: 20, price: 7500 },
     ],
-    active: true,
-    createdAt: "2024-01-01T00:00:00.000Z",
+    active: true, createdAt: "2024-01-01T00:00:00.000Z",
   },
   {
     id: "move-studio",
@@ -46,30 +78,111 @@ const SEED_GYMS = [
     tagline: "Yoga, pilates y movimiento consciente",
     description: "Espacio de bienestar integral con clases de yoga, pilates y meditación.",
     address: "Palermo Soho, Buenos Aires",
-    color: "#10b981",
-    colorDark: "#064e3b",
-    emoji: "🧘",
-    logo: null,
+    color: "#10b981", colorDark: "#064e3b", emoji: "🧘", logo: null,
     plans: [
       { id: "starter", name: "Pack 10", classes: 10, price: 4000 },
       { id: "regular", name: "Pack 12", classes: 12, price: 4800 },
       { id: "mensual", name: "Mensual", classes: 20, price: 7200 },
     ],
-    active: true,
-    createdAt: "2024-01-01T00:00:00.000Z",
+    active: true, createdAt: "2024-01-01T00:00:00.000Z",
   },
 ];
 
 async function seedGyms() {
-  const check = await getDoc(doc(db, "gyms", "crossfit-norte", "info", "data"));
+  const check = await getDoc(doc(db, "gyms", "go-funcional", "info", "data"));
   if (check.exists()) return;
+  await setDoc(doc(db, "gyms", "go-funcional", "info", "data"), GO_FUNCIONAL);
   await Promise.all(
-    SEED_GYMS.map((gym) =>
-      setDoc(doc(db, "gyms", gym.id, "info", "data"), gym)
-    )
+    PLACEHOLDER_GYMS.map((gym) => setDoc(doc(db, "gyms", gym.id, "info", "data"), gym))
   );
 }
 
+// Card especial para GO! Funcional
+function GoFuncionalCard({ gym }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <Link
+      to={`/pass/gym/${gym.id}`}
+      className="block rounded-2xl overflow-hidden border transition-all duration-300"
+      style={{
+        backgroundColor: "#0d0d0d",
+        borderColor: hovered ? "#F5C40040" : "rgba(245,196,0,0.15)",
+        boxShadow: hovered ? "0 20px 40px #F5C40025" : "0 4px 20px rgba(0,0,0,0.4)",
+        transform: hovered ? "translateY(-4px)" : "translateY(0)",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Header negro con texto GO! */}
+      <div
+        className="relative h-36 flex flex-col items-center justify-center"
+        style={{ background: "linear-gradient(160deg, #1a1400 0%, #0d0d0d 100%)" }}
+      >
+        <div
+          className="font-black leading-none tracking-tight"
+          style={{ fontSize: "52px", color: "#F5C400", letterSpacing: "-1px" }}
+        >
+          GO!
+        </div>
+        <div className="text-white text-xs tracking-[0.35em] font-bold mt-1 opacity-80">
+          FUNCIONAL GYM
+        </div>
+        {/* Línea amarilla decorativa */}
+        <div style={{ background: "#F5C400", height: "2px", width: "40px", borderRadius: "2px", marginTop: "10px" }} />
+      </div>
+
+      {/* Body */}
+      <div className="p-5">
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="font-black text-lg text-white">{gym.name}</h3>
+          <span
+            className="text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 ml-2"
+            style={{ backgroundColor: "#F5C400", color: "#000" }}
+          >
+            Disponible
+          </span>
+        </div>
+        <p className="text-slate-400 text-sm mb-1">{gym.tagline}</p>
+        <p className="text-slate-500 text-xs flex items-center gap-1 mb-3">
+          <span>📍</span> {gym.address}
+        </p>
+
+        {/* Disciplinas pills */}
+        {gym.disciplines?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {gym.disciplines.map((d) => (
+              <span
+                key={d}
+                className="text-xs px-2 py-0.5 rounded-full"
+                style={{
+                  border: "1px solid #F5C40030",
+                  color: "#F5C400",
+                  backgroundColor: "#F5C40008",
+                }}
+              >
+                {d}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div
+          className="w-full text-center py-2.5 rounded-xl font-black text-sm transition-all"
+          style={{
+            backgroundColor: "#F5C400",
+            color: "#000",
+            filter: hovered ? "brightness(1.1)" : "brightness(1)",
+          }}
+        >
+          Ver pases →
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// Card genérica para otros gyms
 function GymCard({ gym }) {
   const [hovered, setHovered] = useState(false);
 
@@ -85,56 +198,36 @@ function GymCard({ gym }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Header con gradiente del gym */}
       <div
         className="relative h-36 flex flex-col items-center justify-center"
-        style={{
-          background: `linear-gradient(135deg, ${gym.color}33 0%, ${gym.colorDark} 100%)`,
-        }}
+        style={{ background: `linear-gradient(135deg, ${gym.color}33 0%, ${gym.colorDark} 100%)` }}
       >
         <span className="text-5xl mb-2">{gym.emoji}</span>
         <span
           className="text-xs font-bold px-3 py-1 rounded-full"
-          style={{
-            backgroundColor: gym.color + "25",
-            color: gym.color,
-            border: `1px solid ${gym.color}40`,
-          }}
+          style={{ backgroundColor: gym.color + "25", color: gym.color, border: `1px solid ${gym.color}40` }}
         >
           {gym.name}
         </span>
       </div>
 
-      {/* Body */}
       <div className="p-5">
         <h3 className="font-black text-lg text-white mb-1">{gym.name}</h3>
         <p className="text-slate-400 text-sm mb-2">{gym.tagline}</p>
         <p className="text-slate-500 text-xs flex items-center gap-1 mb-4">
           <span>📍</span> {gym.address}
         </p>
-
         <div className="flex items-center justify-between mb-4">
-          <span className="text-xs text-slate-500">
-            {gym.plans?.length || 0} planes disponibles
-          </span>
+          <span className="text-xs text-slate-500">{gym.plans?.length || 0} planes disponibles</span>
           <div className="flex gap-1">
             {(gym.plans || []).map((_, i) => (
-              <span
-                key={i}
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: gym.color + "80" }}
-              />
+              <span key={i} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: gym.color + "80" }} />
             ))}
           </div>
         </div>
-
         <div
-          className="w-full text-center py-2.5 rounded-xl font-bold text-sm transition-opacity"
-          style={{
-            backgroundColor: gym.color,
-            color: "#000",
-            opacity: hovered ? 1 : 0.85,
-          }}
+          className="w-full text-center py-2.5 rounded-xl font-bold text-sm"
+          style={{ backgroundColor: gym.color, color: "#000", opacity: hovered ? 1 : 0.85 }}
         >
           Ver pases →
         </div>
@@ -156,13 +249,15 @@ export default function GymCatalog() {
         const results = await Promise.all(
           gymSnap.docs.map(async (gymDoc) => {
             const infoSnap = await getDoc(doc(db, "gyms", gymDoc.id, "info", "data"));
-            if (infoSnap.exists() && infoSnap.data().active) {
-              return infoSnap.data();
-            }
+            if (infoSnap.exists() && infoSnap.data().active) return infoSnap.data();
             return null;
           })
         );
-        setGyms(results.filter(Boolean));
+        // GO! Funcional siempre primero
+        const sorted = results.filter(Boolean).sort((a, b) =>
+          a.id === "go-funcional" ? -1 : b.id === "go-funcional" ? 1 : 0
+        );
+        setGyms(sorted);
       } catch (e) {
         console.error(e);
       } finally {
@@ -174,7 +269,6 @@ export default function GymCatalog() {
 
   return (
     <div className="bg-[#030712] text-white min-h-screen font-sans">
-      {/* Grid bg */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -245,9 +339,11 @@ export default function GymCatalog() {
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-6">
-            {gyms.map((gym) => (
-              <GymCard key={gym.id} gym={gym} />
-            ))}
+            {gyms.map((gym) =>
+              gym.id === "go-funcional"
+                ? <GoFuncionalCard key={gym.id} gym={gym} />
+                : <GymCard key={gym.id} gym={gym} />
+            )}
           </div>
         )}
       </section>
