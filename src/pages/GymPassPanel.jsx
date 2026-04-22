@@ -43,9 +43,9 @@ function LoginScreen({ onLogin }) {
 
   function handle(e) {
     e.preventDefault();
-    const cred = CREDENTIALS[user];
+    const cred = CREDENTIALS[user.toLowerCase().trim()];
     if (cred && cred.password === pass) {
-      onLogin({ username: user, ...cred });
+      onLogin({ username: user.toLowerCase().trim(), ...cred });
     } else {
       setErr("Credenciales incorrectas.");
     }
@@ -72,7 +72,11 @@ function LoginScreen({ onLogin }) {
           <input
             placeholder="Usuario"
             value={user}
-            onChange={(e) => setUser(e.target.value)}
+            onChange={(e) => setUser(e.target.value.trim())}
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="username"
+            spellCheck={false}
             className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none focus:border-cyan-400/50"
           />
           <input
@@ -80,6 +84,10 @@ function LoginScreen({ onLogin }) {
             placeholder="Contraseña"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="current-password"
+            spellCheck={false}
             className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none focus:border-cyan-400/50"
           />
           {err && <p className="text-red-400 text-sm">{err}</p>}
