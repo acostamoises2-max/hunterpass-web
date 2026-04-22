@@ -607,7 +607,7 @@ export default function GymPassPanel() {
   useEffect(() => {
     async function loadGymInfo() {
       try {
-        const snap = await getDoc(doc(db, "gyms", gymId, "info", "data"));
+        const snap = await getDoc(doc(db, "gyms", gymId));
         if (snap.exists()) setGymInfo(snap.data());
       } catch {}
     }

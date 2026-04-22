@@ -89,11 +89,12 @@ const PLACEHOLDER_GYMS = [
 ];
 
 async function seedGyms() {
-  const check = await getDoc(doc(db, "gyms", "go-funcional", "info", "data"));
+  // Almacena directo en gyms/{gymId} para que getDocs(collection) los devuelva
+  const check = await getDoc(doc(db, "gyms", "go-funcional"));
   if (check.exists()) return;
-  await setDoc(doc(db, "gyms", "go-funcional", "info", "data"), GO_FUNCIONAL);
+  await setDoc(doc(db, "gyms", "go-funcional"), GO_FUNCIONAL);
   await Promise.all(
-    PLACEHOLDER_GYMS.map((gym) => setDoc(doc(db, "gyms", gym.id, "info", "data"), gym))
+    PLACEHOLDER_GYMS.map((gym) => setDoc(doc(db, "gyms", gym.id), gym))
   );
 }
 
@@ -246,15 +247,11 @@ export default function GymCatalog() {
       try {
         await seedGyms();
         const gymSnap = await getDocs(collection(db, "gyms"));
-        const results = await Promise.all(
-          gymSnap.docs.map(async (gymDoc) => {
-            const infoSnap = await getDoc(doc(db, "gyms", gymDoc.id, "info", "data"));
-            if (infoSnap.exists() && infoSnap.data().active) return infoSnap.data();
-            return null;
-          })
-        );
+        const results = gymSnap.docs
+          .map((d) => d.data())
+          .filter((g) => g.active);
         // GO! Funcional siempre primero
-        const sorted = results.filter(Boolean).sort((a, b) =>
+        const sorted = results.sort((a, b) =>
           a.id === "go-funcional" ? -1 : b.id === "go-funcional" ? 1 : 0
         );
         setGyms(sorted);

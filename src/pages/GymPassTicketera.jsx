@@ -361,7 +361,7 @@ export default function GymPassTicketera() {
     async function loadGym() {
       setGymLoading(true);
       try {
-        const snap = await getDoc(doc(db, "gyms", gymId, "info", "data"));
+        const snap = await getDoc(doc(db, "gyms", gymId));
         if (snap.exists()) {
           const data = snap.data();
           setGymInfo(data);
