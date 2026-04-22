@@ -6,7 +6,6 @@ import {
   getDocs,
   doc,
   getDoc,
-  updateDoc,
   addDoc,
   deleteDoc,
   setDoc,
@@ -199,7 +198,7 @@ function ScannerTab({ gymId, operator }) {
     try {
       const member = result.data;
       const newLeft = member.classesLeft - 1;
-      await updateDoc(doc(db, "gyms", gymId, "members", resultKey), { classesLeft: newLeft });
+      await setDoc(doc(db, "gyms", gymId, "members", resultKey), { classesLeft: newLeft }, { merge: true });
       await addDoc(collection(db, "gyms", gymId, "logs"), {
         userId: member.id,
         name: `${member.firstName} ${member.lastName}`,
@@ -212,8 +211,9 @@ function ScannerTab({ gymId, operator }) {
       });
       setResult((r) => ({ ...r, data: { ...r.data, classesLeft: newLeft } }));
       setAccreditMsg("✓ Clase acreditada correctamente");
-    } catch {
-      setAccreditMsg("Error al acreditar. Intentá de nuevo.");
+    } catch (e) {
+      console.error("accredit error:", e);
+      setAccreditMsg(`Error al acreditar: ${e?.code || e?.message || "intentá de nuevo"}`);
     } finally {
       setAccrediting(false);
     }
@@ -360,7 +360,7 @@ function MembersTab({ gymId }) {
   useEffect(() => { loadMembers(); }, [gymId]);
 
   async function recharge(key, total) {
-    await updateDoc(doc(db, "gyms", gymId, "members", key), { classesLeft: total });
+    await setDoc(doc(db, "gyms", gymId, "members", key), { classesLeft: total }, { merge: true });
     setMembers((ms) => ms.map((m) => m._key === key ? { ...m, classesLeft: total } : m));
   }
 
@@ -642,7 +642,7 @@ function PagosTab({ gymId, gymInfo, gymColor }) {
     setSaving(true);
     setSaved(false);
     try {
-      await updateDoc(doc(db, "gyms", gymId), { plans });
+      await setDoc(doc(db, "gyms", gymId), { plans }, { merge: true });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
