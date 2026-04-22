@@ -597,11 +597,38 @@ function LogsTab({ gymId, memberCount }) {
 
 // ── PAGOS TAB ─────────────────────────────────────────────────────────────────
 function PagosTab({ gymId, gymInfo, gymColor }) {
-  const [plans, setPlans] = useState(() =>
-    (gymInfo?.plans || []).map((p) => ({ ...p, mpLink: p.mpLink || "" }))
-  );
+  const [plans, setPlans] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Sincronizar cuando gymInfo carga (es async)
+  useEffect(() => {
+    if (gymInfo?.plans?.length) {
+      setPlans(gymInfo.plans.map((p) => ({ ...p, mpLink: p.mpLink || "" })));
+    }
+  }, [gymInfo]);
+
+  // Aviso si gymId no corresponde a un gym real
+  if (!gymInfo && gymId === "default") {
+    return (
+      <div className="max-w-2xl">
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6">
+          <p className="font-bold text-amber-400 mb-2">⚠ Gym no identificado</p>
+          <p className="text-slate-400 text-sm mb-4">
+            Estás en <code className="text-white">/panel/gym</code> sin un gym específico.
+            Para gestionar los pagos de un gym, entrá a la URL con el ID del gym:
+          </p>
+          <code className="block bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-cyan-400 text-sm">
+            /panel/gym/go-funcional
+          </code>
+        </div>
+      </div>
+    );
+  }
+
+  if (!gymInfo) {
+    return <p className="text-slate-500 text-sm">Cargando información del gym...</p>;
+  }
 
   async function handleSave() {
     setSaving(true);
