@@ -346,7 +346,8 @@ export default function GymPassTicketera() {
   const [gymNotFound, setGymNotFound] = useState(false);
 
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", payMethod: "Efectivo" });
+  const [paidStep, setPaidStep] = useState(false);
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", payMethod: "Mercado Pago" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [qrMember, setQrMember] = useState(null);
@@ -562,7 +563,7 @@ export default function GymPassTicketera() {
             return (
               <button
                 key={p.id}
-                onClick={() => setSelectedPlan(p.id)}
+                onClick={() => { setSelectedPlan(p.id); setPaidStep(false); }}
                 className="relative text-left rounded-xl p-5 border transition-all"
                 style={{
                   backgroundColor: isGoFuncional ? (isSelected ? "#1a1400" : "#111") : (isSelected ? color + "08" : "#0b1629"),
@@ -598,15 +599,62 @@ export default function GymPassTicketera() {
         </div>
       </section>
 
-      {/* Formulario */}
-      <section className="max-w-4xl mx-auto px-6 pb-20">
+      {/* Bloque de pago MP */}
+      {plan?.mpLink && !paidStep && (
+        <section className="max-w-4xl mx-auto px-6 pb-10">
+          <div
+            className="border rounded-2xl p-7 text-center"
+            style={{
+              backgroundColor: isGoFuncional ? "#111" : "#0b1629",
+              borderColor: color + "30",
+            }}
+          >
+            <div className="text-xs font-black tracking-widest uppercase mb-2" style={{ color }}>
+              Paso 2 · Pagar
+            </div>
+            <p className="text-slate-400 text-sm mb-1">
+              Plan seleccionado: <span className="text-white font-semibold">{plan.name}</span>
+            </p>
+            <p className="font-black text-2xl mb-6" style={{ color }}>
+              ${plan.price.toLocaleString("es-AR")} ARS
+            </p>
+
+            <a
+              href={plan.mpLink}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setTimeout(() => setPaidStep(true), 1500)}
+              className="flex items-center justify-center gap-3 w-full font-black py-4 rounded-xl text-base transition-all hover:brightness-110 mb-4"
+              style={{ backgroundColor: color, color: textOnPrimary }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M13.036 8.967c-.9 0-1.63.73-1.63 1.63s.73 1.63 1.63 1.63 1.63-.73 1.63-1.63-.73-1.63-1.63-1.63zm-4.5 0c-.9 0-1.63.73-1.63 1.63s.73 1.63 1.63 1.63 1.63-.73 1.63-1.63-.73-1.63-1.63-1.63zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm.618 14.765c-.384.145-.794.22-1.218.22-2.07 0-3.752-1.682-3.752-3.752S9.33 9.48 11.4 9.48s3.752 1.682 3.752 3.752a3.74 3.74 0 0 1-.842 2.365l.97.97-.707.707-.955-.509z"/>
+              </svg>
+              Pagar con Mercado Pago
+            </a>
+
+            <button
+              onClick={() => setPaidStep(true)}
+              className="text-sm text-slate-400 hover:text-white transition-colors underline underline-offset-2"
+            >
+              Ya pagué → Completar mis datos para recibir el QR
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Formulario — se muestra si no hay mpLink O si ya pagó */}
+      <section className="max-w-4xl mx-auto px-6 pb-20" style={{ display: plan?.mpLink && !paidStep ? "none" : "block" }}>
         <div
           className="border border-white/8 rounded-2xl p-7"
           style={{ backgroundColor: isGoFuncional ? "#111" : "#0b1629" }}
         >
-          <div className="text-xs font-black tracking-widest uppercase mb-5" style={{ color }}>
-            Tus datos
+          <div className="text-xs font-black tracking-widest uppercase mb-1" style={{ color }}>
+            {plan?.mpLink ? "Paso 3 · Tus datos" : "Tus datos"}
           </div>
+          {plan?.mpLink && (
+            <p className="text-slate-500 text-xs mb-5">Completá el formulario para recibir tu QR personal.</p>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <input
@@ -626,15 +674,24 @@ export default function GymPassTicketera() {
               name="phone" placeholder="Teléfono" value={form.phone} onChange={handleChange}
               className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none"
             />
-            <select
-              name="payMethod" value={form.payMethod} onChange={handleChange}
-              className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm focus:outline-none"
-            >
-              <option>Efectivo</option>
-              <option>Transferencia</option>
-              <option>Mercado Pago</option>
-              <option>Tarjeta</option>
-            </select>
+            {plan?.mpLink ? (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-black/20 border border-white/5 rounded-xl text-sm text-slate-400">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color }}>
+                  <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.01 7.87a5.48 5.48 0 0 1 .49 2.13c0 3.04-2.46 5.5-5.5 5.5a5.48 5.48 0 0 1-2.13-.49l7.14-7.14zm-8.02.26L15.13 17a5.48 5.48 0 0 1-3.13.97c-3.04 0-5.5-2.46-5.5-5.5 0-1.19.37-2.29 1-.39l.39-2.91z"/>
+                </svg>
+                Método de pago: <span className="text-white font-semibold ml-1">Mercado Pago</span>
+              </div>
+            ) : (
+              <select
+                name="payMethod" value={form.payMethod} onChange={handleChange}
+                className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm focus:outline-none"
+              >
+                <option>Efectivo</option>
+                <option>Transferencia</option>
+                <option>Mercado Pago</option>
+                <option>Tarjeta</option>
+              </select>
+            )}
 
             {error && <p className="text-red-400 text-sm">{error}</p>}
 

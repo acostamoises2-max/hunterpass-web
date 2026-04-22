@@ -595,6 +595,115 @@ function LogsTab({ gymId, memberCount }) {
   );
 }
 
+// ── PAGOS TAB ─────────────────────────────────────────────────────────────────
+function PagosTab({ gymId, gymInfo, gymColor }) {
+  const [plans, setPlans] = useState(() =>
+    (gymInfo?.plans || []).map((p) => ({ ...p, mpLink: p.mpLink || "" }))
+  );
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaved(false);
+    try {
+      await updateDoc(doc(db, "gyms", gymId), { plans });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function setLink(idx, val) {
+    setPlans((ps) => ps.map((p, i) => i === idx ? { ...p, mpLink: val } : p));
+  }
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      <div>
+        <h2 className="font-black text-lg mb-1">Links de pago — Mercado Pago</h2>
+        <p className="text-slate-400 text-sm leading-relaxed">
+          Pegá el link de pago de Mercado Pago para cada plan. Los clientes serán redirigidos
+          a ese link al hacer click en "Pagar". Generá los links desde tu panel de MP en{" "}
+          <a href="https://www.mercadopago.com.ar/cobros" target="_blank" rel="noreferrer" className="underline" style={{ color: gymColor }}>
+            mercadopago.com.ar/cobros
+          </a>
+          .
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {plans.map((p, idx) => (
+          <div key={p.id} className="bg-[#0b1629] border border-white/8 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <span className="font-bold text-white">{p.name}</span>
+                <span className="text-slate-500 text-sm ml-2">· {p.classes} clases · ${p.price?.toLocaleString("es-AR")} ARS</span>
+              </div>
+              {p.mpLink ? (
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: gymColor + "20", color: gymColor, border: `1px solid ${gymColor}40` }}>
+                  ✓ Configurado
+                </span>
+              ) : (
+                <span className="text-xs text-slate-500 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
+                  Sin link
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                placeholder="https://link.mercadopago.com.ar/tu-gym"
+                value={p.mpLink}
+                onChange={(e) => setLink(idx, e.target.value)}
+                className="flex-1 p-2.5 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-600 text-sm focus:outline-none"
+                style={{ focusBorderColor: gymColor }}
+              />
+              {p.mpLink && (
+                <a
+                  href={p.mpLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 flex items-center text-xs bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-colors"
+                >
+                  Probar →
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-6 py-3 font-black text-sm rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
+          style={{ backgroundColor: gymColor, color: "#000" }}
+        >
+          {saving ? "Guardando..." : "Guardar links"}
+        </button>
+        {saved && (
+          <span className="text-green-400 text-sm font-semibold">✓ Guardado correctamente</span>
+        )}
+      </div>
+
+      <div className="bg-white/[0.02] border border-white/8 rounded-xl p-5 text-sm text-slate-400 space-y-2">
+        <p className="font-semibold text-white text-xs tracking-widest uppercase">Cómo generar el link en MP</p>
+        <ol className="list-decimal list-inside space-y-1 text-xs leading-relaxed">
+          <li>Entrá a <strong className="text-white">mercadopago.com.ar/cobros</strong></li>
+          <li>Seleccioná <strong className="text-white">Cobrar con link</strong></li>
+          <li>Creá un link por cada plan con el precio exacto</li>
+          <li>Copiá el link y pegalo en el campo de arriba</li>
+          <li>Guardá los cambios</li>
+        </ol>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN PANEL ─────────────────────────────────────────────────────────────────
 export default function GymPassPanel() {
   const { gymId = "default" } = useParams();
@@ -678,6 +787,7 @@ export default function GymPassPanel() {
               { id: "scanner", label: "📷 Escanear QR" },
               { id: "members", label: `👥 Miembros (${memberCount})` },
               { id: "logs", label: `📊 Registro (${logCount} hoy)` },
+              { id: "pagos", label: "💳 Pagos" },
             ].map(({ id, label }) => (
               <button
                 key={id}
@@ -701,6 +811,7 @@ export default function GymPassPanel() {
         {tab === "scanner" && <ScannerTab gymId={gymId} operator={operator} />}
         {tab === "members" && <MembersTab gymId={gymId} />}
         {tab === "logs" && <LogsTab gymId={gymId} memberCount={memberCount} />}
+        {tab === "pagos" && <PagosTab gymId={gymId} gymInfo={gymInfo} gymColor={gymColor} />}
       </main>
     </div>
   );
