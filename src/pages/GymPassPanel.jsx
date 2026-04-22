@@ -602,6 +602,17 @@ export default function GymPassPanel() {
   const [tab, setTab] = useState("scanner");
   const [memberCount, setMemberCount] = useState(0);
   const [logCount, setLogCount] = useState(0);
+  const [gymInfo, setGymInfo] = useState(null);
+
+  useEffect(() => {
+    async function loadGymInfo() {
+      try {
+        const snap = await getDoc(doc(db, "gyms", gymId, "info", "data"));
+        if (snap.exists()) setGymInfo(snap.data());
+      } catch {}
+    }
+    loadGymInfo();
+  }, [gymId]);
 
   useEffect(() => {
     if (!operator) return;
@@ -619,13 +630,14 @@ export default function GymPassPanel() {
 
   if (!operator) return <LoginScreen onLogin={setOperator} />;
 
+  const gymColor = gymInfo?.color || "#22d3ee";
+
   return (
     <div className="bg-[#030712] text-white min-h-screen font-sans">
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
-          backgroundImage:
-            "linear-gradient(rgba(34,211,238,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.02) 1px, transparent 1px)",
+          backgroundImage: `linear-gradient(${gymColor}15 1px, transparent 1px), linear-gradient(90deg, ${gymColor}15 1px, transparent 1px)`,
           backgroundSize: "60px 60px",
         }}
       />
@@ -635,11 +647,17 @@ export default function GymPassPanel() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-4">
           <img src="/logo-hunterpass.png" alt="HunterPass" className="h-10 w-auto opacity-80" />
           <div className="w-px h-6 bg-white/10" />
-          <span className="font-black text-white text-sm tracking-widest hidden sm:block">GYMPASS Panel Interno</span>
+          {gymInfo && <span className="text-lg">{gymInfo.emoji}</span>}
+          <span className="font-black text-white text-sm tracking-widest hidden sm:block">
+            {gymInfo ? gymInfo.name : "GYMPASS"} · Panel Interno
+          </span>
           <div className="flex-1" />
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span
+                className="w-2 h-2 rounded-full animate-pulse"
+                style={{ backgroundColor: gymColor }}
+              />
               <span className="text-xs text-slate-300 font-semibold">{operator.label}</span>
             </div>
             <button
@@ -664,11 +682,12 @@ export default function GymPassPanel() {
               <button
                 key={id}
                 onClick={() => setTab(id)}
-                className={`px-5 py-4 text-sm font-semibold border-b-2 transition-colors ${
+                className="px-5 py-4 text-sm font-semibold border-b-2 transition-colors"
+                style={
                   tab === id
-                    ? "border-cyan-400 text-cyan-400"
-                    : "border-transparent text-slate-400 hover:text-white"
-                }`}
+                    ? { borderColor: gymColor, color: gymColor }
+                    : { borderColor: "transparent", color: "#94a3b8" }
+                }
               >
                 {label}
               </button>

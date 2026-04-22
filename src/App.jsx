@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import PassHub from "./pages/PassHub";
+import GymCatalog from "./pages/GymCatalog";
 import GymPassTicketera from "./pages/GymPassTicketera";
 import GymPassPanel from "./pages/GymPassPanel";
 
@@ -711,7 +712,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/pass" element={<PassHub />} />
-        <Route path="/pass/gym" element={<GymPassTicketera />} />
+        <Route path="/pass/gym" element={<GymCatalog />} />
         <Route path="/pass/gym/:gymId" element={<GymPassTicketera />} />
         <Route path="/panel/gym" element={<GymPassPanel />} />
         <Route path="/panel/gym/:gymId" element={<GymPassPanel />} />
