@@ -731,6 +731,93 @@ function PagosTab({ gymId, gymInfo, gymColor }) {
   );
 }
 
+// ── GYM SELECTOR ─────────────────────────────────────────────────────────────
+function GymSelector({ operator, onLogout }) {
+  const [gyms, setGyms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const snap = await getDocs(collection(db, "gyms"));
+        setGyms(snap.docs.map((d) => d.data()).filter((g) => g.active));
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  return (
+    <div className="bg-[#030712] text-white min-h-screen font-sans">
+      <div className="fixed inset-0 pointer-events-none" style={{
+        backgroundImage: "linear-gradient(rgba(34,211,238,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,0.02) 1px,transparent 1px)",
+        backgroundSize: "60px 60px",
+      }} />
+
+      <header className="sticky top-0 z-50 bg-[#030712]/90 backdrop-blur border-b border-white/5">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-4">
+          <img src="/logo-hunterpass.png" alt="HunterPass" className="h-10 w-auto opacity-80" />
+          <div className="w-px h-6 bg-white/10" />
+          <span className="font-black text-white text-sm tracking-widest">Panel Interno</span>
+          <div className="flex-1" />
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400 hidden sm:block">{operator.label}</span>
+            <button
+              onClick={onLogout}
+              className="text-xs text-slate-500 hover:text-red-400 transition-colors px-3 py-1.5 border border-white/10 rounded-full hover:border-red-400/30"
+            >
+              Salir
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-6 py-16">
+        <div className="text-center mb-12">
+          <div className="text-xs text-cyan-400 font-semibold tracking-widest uppercase mb-3">Panel de operadores</div>
+          <h1 className="text-3xl font-black">Seleccioná un gym</h1>
+          <p className="text-slate-400 mt-2 text-sm">Elegí el gym que querés administrar</p>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+          </div>
+        ) : gyms.length === 0 ? (
+          <p className="text-center text-slate-500">No hay gyms disponibles.</p>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-4">
+            {gyms.map((gym) => (
+              <Link
+                key={gym.id}
+                to={`/panel/gym/${gym.id}`}
+                className="group block bg-[#0b1629] border border-white/8 rounded-2xl p-6 hover:border-white/20 transition-all hover:-translate-y-0.5"
+                style={{ "--gym-color": gym.color }}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-black flex-shrink-0"
+                    style={{ backgroundColor: gym.color + "20", color: gym.color, fontSize: gym.emoji?.length > 2 ? "14px" : "28px" }}
+                  >
+                    {gym.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-black text-white text-base">{gym.name}</h3>
+                    <p className="text-slate-400 text-sm truncate">{gym.tagline}</p>
+                    <p className="text-slate-600 text-xs mt-0.5">📍 {gym.address}</p>
+                  </div>
+                  <span className="text-slate-500 group-hover:text-white transition-colors text-xl">→</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
 // ── MAIN PANEL ─────────────────────────────────────────────────────────────────
 export default function GymPassPanel() {
   const { gymId = "default" } = useParams();
@@ -765,6 +852,9 @@ export default function GymPassPanel() {
   }, [operator, gymId]);
 
   if (!operator) return <LoginScreen onLogin={setOperator} />;
+
+  // Sin gymId específico → mostrar selector de gyms
+  if (gymId === "default") return <GymSelector operator={operator} onLogout={() => setOperator(null)} />;
 
   const gymColor = gymInfo?.color || "#22d3ee";
 
