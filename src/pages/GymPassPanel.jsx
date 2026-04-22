@@ -171,7 +171,7 @@ function ScannerTab({ gymId, operator }) {
       scanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
-        (text) => { processQR(text); scanner.stop(); setScanning(false); },
+        (text) => { console.log("QR scanned:", text); setManualInput(text); processQR(text); scanner.stop(); setScanning(false); },
         () => {}
       ).catch(() => setScanning(false));
     }
