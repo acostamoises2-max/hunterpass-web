@@ -134,6 +134,7 @@ function ScannerTab({ gymId, operator }) {
   const [accreditMsg, setAccreditMsg] = useState("");
   const scannerRef = useRef(null);
   const html5QrRef = useRef(null);
+  const resultRef = useRef(null);
 
   const processQR = useCallback(async (text) => {
     setAccreditMsg("");
@@ -154,6 +155,12 @@ function ScannerTab({ gymId, operator }) {
       setResult({ status: "error", msg: e?.code || e?.message || "Error desconocido" });
     }
   }, [gymId]);
+
+  useEffect(() => {
+    if (result && resultRef.current) {
+      resultRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [result]);
 
   useEffect(() => {
     if (!scanning) {
@@ -280,7 +287,7 @@ function ScannerTab({ gymId, operator }) {
       </div>
 
       {/* Resultado */}
-      <div className={`bg-[#0b1629] border rounded-2xl p-6 transition-all ${result ? statusColor : "border-white/8"}`}>
+      <div ref={resultRef} className={`bg-[#0b1629] border rounded-2xl p-6 transition-all ${result ? statusColor : "border-white/8"}`}>
         <div className="text-xs text-cyan-400 font-semibold tracking-widest uppercase mb-4">Resultado</div>
 
         {!result && (
