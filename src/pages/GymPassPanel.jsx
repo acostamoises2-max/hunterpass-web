@@ -149,8 +149,9 @@ function ScannerTab({ gymId, operator }) {
       } else {
         setResult({ status: "notfound", raw: text });
       }
-    } catch {
-      setResult({ status: "error" });
+    } catch (e) {
+      console.error("processQR error:", e);
+      setResult({ status: "error", msg: e?.code || e?.message || "Error desconocido" });
     }
   }, [gymId]);
 
@@ -286,6 +287,12 @@ function ScannerTab({ gymId, operator }) {
           <div className="flex flex-col items-center justify-center h-48 text-slate-600">
             <div className="text-4xl mb-2">◎</div>
             <p className="text-sm">Esperando escaneo...</p>
+          </div>
+        )}
+
+        {result?.status === "error" && (
+          <div className="bg-red-500/20 border border-red-500/30 rounded-xl px-4 py-3 text-sm font-semibold text-red-400 mb-4">
+            ✗ Error al leer miembro: {result.msg}
           </div>
         )}
 
