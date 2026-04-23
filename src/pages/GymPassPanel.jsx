@@ -159,6 +159,7 @@ function ScannerTab({ gymId, operator }) {
   const scannerRef = useRef(null);
   const html5QrRef = useRef(null);
   const resultRef = useRef(null);
+  const scannedRef = useRef(false);
 
   const processQR = useCallback(async (text) => {
     setAccreditMsg("");
@@ -189,20 +190,34 @@ function ScannerTab({ gymId, operator }) {
   useEffect(() => {
     if (!scanning) {
       if (html5QrRef.current) {
-        html5QrRef.current.stop().catch(() => {});
+        try { html5QrRef.current.stop().catch(() => {}); } catch {}
         html5QrRef.current = null;
       }
       return;
     }
 
+    function stopScanner() {
+      if (html5QrRef.current) {
+        try { html5QrRef.current.stop().catch(() => {}); } catch {}
+        html5QrRef.current = null;
+      }
+    }
+
     function startScanner() {
       if (!window.Html5Qrcode) return;
+      scannedRef.current = false;
       const scanner = new window.Html5Qrcode("qr-reader");
       html5QrRef.current = scanner;
       scanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
-        (text) => { console.log("QR scanned:", text); setManualInput(text); processQR(text); scanner.stop(); setScanning(false); },
+        (text) => {
+          if (scannedRef.current) return;
+          scannedRef.current = true;
+          stopScanner();
+          processQR(text);
+          setScanning(false);
+        },
         () => {}
       ).catch(() => setScanning(false));
     }
@@ -216,12 +231,7 @@ function ScannerTab({ gymId, operator }) {
       document.head.appendChild(script);
     }
 
-    return () => {
-      if (html5QrRef.current) {
-        html5QrRef.current.stop().catch(() => {});
-        html5QrRef.current = null;
-      }
-    };
+    return () => { stopScanner(); };
   }, [scanning, processQR]);
 
   async function accredit() {
