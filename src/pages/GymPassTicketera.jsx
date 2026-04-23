@@ -346,10 +346,12 @@ export default function GymPassTicketera() {
   const [gymNotFound, setGymNotFound] = useState(false);
 
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [paidStep, setPaidStep] = useState(false);
+  // payStep: null | 'form' | 'paying' | 'verifying'
+  const [payStep, setPayStep] = useState(null);
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", payMethod: "Mercado Pago" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [verifyError, setVerifyError] = useState("");
   const [qrMember, setQrMember] = useState(null);
 
   const [lookupEmail, setLookupEmail] = useState("");
@@ -401,16 +403,20 @@ export default function GymPassTicketera() {
       return;
     }
     if (!plan) { setError("Seleccioná un plan."); return; }
+
+    // Con MP: solo avanzamos al paso de pago, NO creamos miembro todavía
+    if (plan.mpLink) {
+      setPayStep("paying");
+      return;
+    }
+
+    // Sin MP: crear miembro directamente (efectivo/transferencia)
     setLoading(true);
     try {
       const key = emailToKey(form.email);
       const ref = doc(db, "gyms", gymId, "members", key);
       const snap = await getDoc(ref);
-      if (snap.exists()) {
-        setQrMember(snap.data());
-        setLoading(false);
-        return;
-      }
+      if (snap.exists()) { setQrMember(snap.data()); return; }
       const member = {
         id: "GP-" + randomId(),
         firstName: form.firstName,
@@ -431,6 +437,33 @@ export default function GymPassTicketera() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleVerifyPayment() {
+    setVerifyError("");
+    setPayStep("verifying");
+    try {
+      const key = emailToKey(form.email);
+      const ref = doc(db, "gyms", gymId, "members", key);
+      const snap = await getDoc(ref);
+      if (snap.exists() && snap.data().paymentConfirmed) {
+        const data = snap.data();
+        // Completar datos personales que el webhook no tiene
+        const update = {};
+        if (!data.firstName && form.firstName) update.firstName = form.firstName;
+        if (!data.lastName && form.lastName) update.lastName = form.lastName;
+        if (!data.phone && form.phone) update.phone = form.phone;
+        if (!data.id) update.id = "GP-" + randomId();
+        if (Object.keys(update).length) await setDoc(ref, update, { merge: true });
+        setQrMember({ ...data, ...update });
+      } else {
+        setVerifyError("Pago aún no confirmado. Si acabas de pagar, esperá unos segundos y reintentá.");
+        setPayStep("paying");
+      }
+    } catch {
+      setVerifyError("Error al verificar. Intentá de nuevo.");
+      setPayStep("paying");
     }
   }
 
@@ -599,113 +632,116 @@ export default function GymPassTicketera() {
         </div>
       </section>
 
-      {/* Bloque de pago MP */}
-      {plan?.mpLink && !paidStep && (
+      {/* Paso 2: Formulario de datos */}
+      {!qrMember && (
         <section className="max-w-4xl mx-auto px-6 pb-10">
-          <div
-            className="border rounded-2xl p-7 text-center"
-            style={{
-              backgroundColor: isGoFuncional ? "#111" : "#0b1629",
-              borderColor: color + "30",
-            }}
-          >
+          <div className="border border-white/8 rounded-2xl p-7" style={{ backgroundColor: isGoFuncional ? "#111" : "#0b1629" }}>
+            <div className="text-xs font-black tracking-widest uppercase mb-1" style={{ color }}>
+              {plan?.mpLink ? "Paso 2 · Tus datos" : "Tus datos"}
+            </div>
+            {plan?.mpLink && (
+              <p className="text-slate-500 text-xs mb-5">Completá tus datos. Usá el mismo email al pagar en Mercado Pago.</p>
+            )}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <input name="firstName" placeholder="Nombre" value={form.firstName} onChange={handleChange}
+                  disabled={payStep === "paying" || payStep === "verifying"}
+                  className="p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none disabled:opacity-50" />
+                <input name="lastName" placeholder="Apellido" value={form.lastName} onChange={handleChange}
+                  disabled={payStep === "paying" || payStep === "verifying"}
+                  className="p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none disabled:opacity-50" />
+              </div>
+              <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange}
+                disabled={payStep === "paying" || payStep === "verifying"}
+                className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none disabled:opacity-50" />
+              <input name="phone" placeholder="Teléfono" value={form.phone} onChange={handleChange}
+                disabled={payStep === "paying" || payStep === "verifying"}
+                className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none disabled:opacity-50" />
+
+              {!plan?.mpLink && (
+                <select name="payMethod" value={form.payMethod} onChange={handleChange}
+                  className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm focus:outline-none">
+                  <option>Efectivo</option>
+                  <option>Transferencia</option>
+                  <option>Mercado Pago</option>
+                  <option>Tarjeta</option>
+                </select>
+              )}
+
+              {error && <p className="text-red-400 text-sm">{error}</p>}
+
+              {/* Sin MP: botón directo */}
+              {!plan?.mpLink && (
+                <button type="submit" disabled={loading}
+                  className="w-full font-black py-4 rounded-xl text-base transition-all hover:brightness-110 disabled:opacity-50"
+                  style={{ backgroundColor: color, color: textOnPrimary }}>
+                  {loading ? "Procesando..." : "OBTENER MI QR →"}
+                </button>
+              )}
+
+              {/* Con MP: botón para avanzar al pago */}
+              {plan?.mpLink && !payStep && (
+                <button type="submit"
+                  className="w-full font-black py-4 rounded-xl text-base transition-all hover:brightness-110"
+                  style={{ backgroundColor: color, color: textOnPrimary }}>
+                  Continuar al pago →
+                </button>
+              )}
+            </form>
+          </div>
+        </section>
+      )}
+
+      {/* Paso 3: Pagar con MP */}
+      {plan?.mpLink && payStep === "paying" && !qrMember && (
+        <section className="max-w-4xl mx-auto px-6 pb-10">
+          <div className="border rounded-2xl p-7 text-center"
+            style={{ backgroundColor: isGoFuncional ? "#111" : "#0b1629", borderColor: color + "30" }}>
             <div className="text-xs font-black tracking-widest uppercase mb-2" style={{ color }}>
-              Paso 2 · Pagar
+              Paso 3 · Pagar
             </div>
             <p className="text-slate-400 text-sm mb-1">
-              Plan seleccionado: <span className="text-white font-semibold">{plan.name}</span>
+              Plan: <span className="text-white font-semibold">{plan.name}</span>
             </p>
-            <p className="font-black text-2xl mb-6" style={{ color }}>
+            <p className="font-black text-2xl mb-2" style={{ color }}>
               ${plan.price.toLocaleString("es-AR")} ARS
             </p>
+            <p className="text-slate-500 text-xs mb-6">
+              Pagá con el email: <span className="text-white">{form.email}</span>
+            </p>
 
-            <a
-              href={plan.mpLink}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => setTimeout(() => setPaidStep(true), 1500)}
+            <a href={plan.mpLink} target="_blank" rel="noreferrer"
               className="flex items-center justify-center gap-3 w-full font-black py-4 rounded-xl text-base transition-all hover:brightness-110 mb-4"
-              style={{ backgroundColor: color, color: textOnPrimary }}
-            >
+              style={{ backgroundColor: color, color: textOnPrimary }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M13.036 8.967c-.9 0-1.63.73-1.63 1.63s.73 1.63 1.63 1.63 1.63-.73 1.63-1.63-.73-1.63-1.63-1.63zm-4.5 0c-.9 0-1.63.73-1.63 1.63s.73 1.63 1.63 1.63 1.63-.73 1.63-1.63-.73-1.63-1.63-1.63zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm.618 14.765c-.384.145-.794.22-1.218.22-2.07 0-3.752-1.682-3.752-3.752S9.33 9.48 11.4 9.48s3.752 1.682 3.752 3.752a3.74 3.74 0 0 1-.842 2.365l.97.97-.707.707-.955-.509z"/>
               </svg>
               Pagar con Mercado Pago
             </a>
 
-            <button
-              onClick={() => setPaidStep(true)}
-              className="text-sm text-slate-400 hover:text-white transition-colors underline underline-offset-2"
-            >
-              Ya pagué → Completar mis datos para recibir el QR
+            {verifyError && (
+              <p className="text-amber-400 text-sm mb-3">{verifyError}</p>
+            )}
+
+            <button onClick={handleVerifyPayment}
+              className="text-sm text-slate-400 hover:text-white transition-colors underline underline-offset-2">
+              Ya pagué → Verificar pago
             </button>
           </div>
         </section>
       )}
 
-      {/* Formulario — se muestra si no hay mpLink O si ya pagó */}
-      <section className="max-w-4xl mx-auto px-6 pb-20" style={{ display: plan?.mpLink && !paidStep ? "none" : "block" }}>
-        <div
-          className="border border-white/8 rounded-2xl p-7"
-          style={{ backgroundColor: isGoFuncional ? "#111" : "#0b1629" }}
-        >
-          <div className="text-xs font-black tracking-widest uppercase mb-1" style={{ color }}>
-            {plan?.mpLink ? "Paso 3 · Tus datos" : "Tus datos"}
+      {/* Verificando */}
+      {payStep === "verifying" && !qrMember && (
+        <section className="max-w-4xl mx-auto px-6 pb-10">
+          <div className="border rounded-2xl p-7 text-center border-white/8"
+            style={{ backgroundColor: isGoFuncional ? "#111" : "#0b1629" }}>
+            <div className="text-2xl mb-3">⏳</div>
+            <p className="text-white font-semibold mb-1">Verificando tu pago...</p>
+            <p className="text-slate-400 text-sm">Consultando confirmación de Mercado Pago</p>
           </div>
-          {plan?.mpLink && (
-            <p className="text-slate-500 text-xs mb-5">Completá el formulario para recibir tu QR personal.</p>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                name="firstName" placeholder="Nombre" value={form.firstName} onChange={handleChange}
-                className="p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none"
-              />
-              <input
-                name="lastName" placeholder="Apellido" value={form.lastName} onChange={handleChange}
-                className="p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none"
-              />
-            </div>
-            <input
-              name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange}
-              className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none"
-            />
-            <input
-              name="phone" placeholder="Teléfono" value={form.phone} onChange={handleChange}
-              className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none"
-            />
-            {plan?.mpLink ? (
-              <div className="flex items-center gap-2 px-3 py-2.5 bg-black/20 border border-white/5 rounded-xl text-sm text-slate-400">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color }}>
-                  <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.01 7.87a5.48 5.48 0 0 1 .49 2.13c0 3.04-2.46 5.5-5.5 5.5a5.48 5.48 0 0 1-2.13-.49l7.14-7.14zm-8.02.26L15.13 17a5.48 5.48 0 0 1-3.13.97c-3.04 0-5.5-2.46-5.5-5.5 0-1.19.37-2.29 1-.39l.39-2.91z"/>
-                </svg>
-                Método de pago: <span className="text-white font-semibold ml-1">Mercado Pago</span>
-              </div>
-            ) : (
-              <select
-                name="payMethod" value={form.payMethod} onChange={handleChange}
-                className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm focus:outline-none"
-              >
-                <option>Efectivo</option>
-                <option>Transferencia</option>
-                <option>Mercado Pago</option>
-                <option>Tarjeta</option>
-              </select>
-            )}
-
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full font-black py-4 rounded-xl text-base transition-all hover:brightness-110 disabled:opacity-50"
-              style={{ backgroundColor: color, color: textOnPrimary }}
-            >
-              {loading ? "Procesando..." : "OBTENER MI QR →"}
-            </button>
-          </form>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Consultar pase */}
       <section className="max-w-4xl mx-auto px-6 pb-20">
