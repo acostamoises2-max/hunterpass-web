@@ -31,16 +31,22 @@ export default async function handler(req, res) {
     if (payment.status === "approved") {
       const email = payment.payer?.email;
       const ref = payment.external_reference ?? "";
-      const [gymId, planId, planName, classesStr] = ref.split("|");
+      const underscoreIdx = ref.indexOf("_");
+      const gymId = ref.slice(0, underscoreIdx);
+      const planId = ref.slice(underscoreIdx + 1);
 
-      if (email && gymId) {
+      if (email && gymId && planId) {
         const db = getDb();
-        const classes = Number(classesStr) || 0;
+        const gymDoc = await db.doc(`gyms/${gymId}`).get();
+        const plans = gymDoc.data()?.plans ?? [];
+        const plan = plans.find((p) => p.id === planId);
+        const classes = Number(plan?.classes) || 0;
+
         await db.doc(`gyms/${gymId}/members/${emailToKey(email)}`).set(
           {
             paymentConfirmed: true,
             paymentId: String(paymentId),
-            plan: { id: planId ?? "", name: planName ?? "" },
+            plan: { id: planId, name: plan?.name ?? planId },
             classesTotal: classes,
             classesLeft: classes,
             updatedAt: new Date().toISOString(),
