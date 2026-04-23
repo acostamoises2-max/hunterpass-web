@@ -17,12 +17,17 @@ import {
 class ErrorBoundary extends Component {
   state = { error: null };
   static getDerivedStateFromError(e) { return { error: e }; }
+  componentDidCatch(e, info) { console.error("ErrorBoundary:", e, info); }
   render() {
     if (this.state.error) {
+      const e = this.state.error;
+      const msg = e?.message || String(e) || "sin mensaje";
+      const stack = e?.stack?.slice(0, 300) || "";
       return (
-        <div className="bg-red-500/20 border border-red-500/40 rounded-2xl p-6 text-red-400">
-          <p className="font-bold mb-2">Error de render:</p>
-          <pre className="text-xs whitespace-pre-wrap">{this.state.error.message}</pre>
+        <div className="bg-red-500/20 border border-red-500/40 rounded-2xl p-4 text-red-400">
+          <p className="font-bold mb-2 text-sm">Error de render:</p>
+          <pre className="text-xs whitespace-pre-wrap break-all mb-2">{msg}</pre>
+          <pre className="text-xs whitespace-pre-wrap break-all opacity-60">{stack}</pre>
           <button onClick={() => this.setState({ error: null })} className="mt-4 px-4 py-2 bg-red-500/30 rounded-xl text-sm">
             Reintentar
           </button>
@@ -246,16 +251,17 @@ function ScannerTab({ gymId, operator }) {
     }
   }
 
+  const classesLeft = result?.data?.classesLeft ?? 0;
   const statusColor = result?.status === "found"
-    ? result.data.classesLeft > 0 ? "border-green-500/50 bg-green-500/5" : "border-amber-400/50 bg-amber-400/5"
+    ? classesLeft > 0 ? "border-green-500/50 bg-green-500/5" : "border-amber-400/50 bg-amber-400/5"
     : result?.status === "notfound" ? "border-red-500/50 bg-red-500/5" : "";
 
   const bannerColor = result?.status === "found"
-    ? result.data.classesLeft > 0 ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-amber-400/20 text-amber-400 border-amber-400/30"
+    ? classesLeft > 0 ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-amber-400/20 text-amber-400 border-amber-400/30"
     : result?.status === "notfound" ? "bg-red-500/20 text-red-400 border-red-500/30" : "";
 
   const bannerText = result?.status === "found"
-    ? result.data.classesLeft > 0 ? "✓ Miembro verificado" : "⚠ Sin clases disponibles"
+    ? classesLeft > 0 ? "✓ Miembro verificado" : "⚠ Sin clases disponibles"
     : result?.status === "notfound" ? "✗ Miembro no encontrado" : "";
 
   return (
@@ -346,8 +352,8 @@ function ScannerTab({ gymId, operator }) {
             </div>
 
             <div className="bg-white/[0.03] border border-white/8 rounded-xl p-4 mb-4">
-              <p className="text-xs text-slate-500 mb-2">{result.data.plan?.name}</p>
-              <ClassMeter left={result.data.classesLeft} total={result.data.classesTotal} />
+              <p className="text-xs text-slate-500 mb-2">{result.data?.plan?.name}</p>
+              <ClassMeter left={result.data?.classesLeft ?? 0} total={result.data?.classesTotal ?? 0} />
             </div>
 
             {accreditMsg && (
@@ -358,7 +364,7 @@ function ScannerTab({ gymId, operator }) {
 
             <button
               onClick={accredit}
-              disabled={result.data.classesLeft <= 0 || accrediting}
+              disabled={classesLeft <= 0 || accrediting}
               className="w-full py-3 bg-green-500 hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors"
             >
               {accrediting ? "Acreditando..." : "✓ ACREDITAR CLASE"}
