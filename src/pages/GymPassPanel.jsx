@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Component } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../lib/firebase";
 import {
@@ -13,6 +13,25 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
+
+class ErrorBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(e) { return { error: e }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="bg-red-500/20 border border-red-500/40 rounded-2xl p-6 text-red-400">
+          <p className="font-bold mb-2">Error de render:</p>
+          <pre className="text-xs whitespace-pre-wrap">{this.state.error.message}</pre>
+          <button onClick={() => this.setState({ error: null })} className="mt-4 px-4 py-2 bg-red-500/30 rounded-xl text-sm">
+            Reintentar
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const CREDENTIALS = {
   admin: { password: "admin123", role: "admin", label: "Administrador" },
@@ -947,7 +966,7 @@ export default function GymPassPanel() {
 
       {/* Content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
-        {tab === "scanner" && <ScannerTab gymId={gymId} operator={operator} />}
+        {tab === "scanner" && <ErrorBoundary><ScannerTab gymId={gymId} operator={operator} /></ErrorBoundary>}
         {tab === "members" && <MembersTab gymId={gymId} />}
         {tab === "logs" && <LogsTab gymId={gymId} memberCount={memberCount} />}
         {tab === "pagos" && <PagosTab gymId={gymId} gymInfo={gymInfo} gymColor={gymColor} />}
