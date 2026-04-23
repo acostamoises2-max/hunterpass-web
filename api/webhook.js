@@ -29,17 +29,20 @@ export default async function handler(req, res) {
     const payment = await mpRes.json();
 
     if (payment.status === "approved") {
-      const { email, gym_id: gymId, plan_id: planId, plan_name: planName, classes } = payment.metadata ?? {};
+      const email = payment.payer?.email;
+      const ref = payment.external_reference ?? "";
+      const [gymId, planId, planName, classesStr] = ref.split("|");
 
       if (email && gymId) {
         const db = getDb();
+        const classes = Number(classesStr) || 0;
         await db.doc(`gyms/${gymId}/members/${emailToKey(email)}`).set(
           {
             paymentConfirmed: true,
             paymentId: String(paymentId),
-            plan: { id: planId, name: planName },
-            classesTotal: Number(classes) || 0,
-            classesLeft: Number(classes) || 0,
+            plan: { id: planId ?? "", name: planName ?? "" },
+            classesTotal: classes,
+            classesLeft: classes,
             updatedAt: new Date().toISOString(),
           },
           { merge: true }
