@@ -5,7 +5,7 @@ import GymCatalog from "./pages/GymCatalog";
 import GymPassTicketera from "./pages/GymPassTicketera";
 import GymPassPanel from "./pages/GymPassPanel";
 
-const WA_NUMBER = "5491166242165";
+const WA_NUMBER = "5491128039412";
 
 function NavBar() {
   return (
@@ -15,8 +15,8 @@ function NavBar() {
           <img src="/logo-hunterpass.png" alt="HunterPass" className="h-14 w-auto" />
           <div className="hidden sm:block">
             <div className="font-black text-white text-sm tracking-wider">HUNTERPASS</div>
-            <div className="text-slate-400 text-xs">Control de accesos y experiencias inteligentes</div>
-          </div>
+               <div className="text-slate-400 text-xs">Control de accesos y experiencias inteligentes</div>
+       </div>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm text-slate-300">
           <a href="#servicios" className="hover:text-cyan-400 transition-colors">Servicios</a>
