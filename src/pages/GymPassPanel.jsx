@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, Component } from "react";
 import { useParams, Link } from "react-router-dom";
-import { db } from "../lib/firebase";
+import { db, auth } from "../lib/firebase";
 import {
   collection,
   getDocs,
@@ -13,6 +13,7 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 
 class ErrorBoundary extends Component {
   state = { error: null };
@@ -38,11 +39,6 @@ class ErrorBoundary extends Component {
   }
 }
 
-const CREDENTIALS = {
-  admin: { password: "admin123", role: "admin", label: "Administrador" },
-  operador: { password: "gym2024", role: "operator", label: "Operador" },
-};
-
 function emailToKey(email) {
   return email.toLowerCase().replace(/\./g, "_").replace(/@/g, "--");
 }
@@ -59,18 +55,37 @@ function isToday(ts) {
 }
 
 // ── LOGIN ────────────────────────────────────────────────────────────────────
-function LoginScreen({ onLogin }) {
-  const [user, setUser] = useState("");
-  const [pass, setPass] = useState("");
+function LoginScreen() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handle(e) {
+  async function doLogin(e) {
     e.preventDefault();
-    const cred = CREDENTIALS[user.toLowerCase().trim()];
-    if (cred && cred.password === pass) {
-      onLogin({ username: user.toLowerCase().trim(), ...cred });
-    } else {
-      setErr("Credenciales incorrectas.");
+    if (!email || !password) return;
+    setErr("");
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged se encarga del resto
+    } catch (error) {
+      console.error("[web-login] code:", error.code);
+      console.error("[web-login] message:", error.message);
+      const msgs = {
+        "auth/invalid-credential":      "Email o contraseña incorrectos",
+        "auth/user-not-found":          "Usuario no encontrado",
+        "auth/wrong-password":          "Contraseña incorrecta",
+        "auth/invalid-email":           "Email inválido",
+        "auth/user-disabled":           "Cuenta deshabilitada",
+        "auth/network-request-failed":  "Error de red — verificar conexión",
+        "auth/invalid-api-key":         "Error de configuración Firebase",
+        "auth/configuration-not-found": "Error de configuración Firebase",
+        "auth/too-many-requests":       "Demasiados intentos, esperá unos minutos",
+      };
+      setErr(msgs[error.code] || "[" + error.code + "]");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -91,22 +106,23 @@ function LoginScreen({ onLogin }) {
           <p className="text-slate-400 text-sm mt-1">Acceso restringido para operadores autorizados</p>
         </div>
 
-        <form onSubmit={handle} className="bg-[#0b1629] border border-white/10 rounded-2xl p-7 space-y-4">
+        <form onSubmit={doLogin} className="bg-[#0b1629] border border-white/10 rounded-2xl p-7 space-y-4">
           <input
-            placeholder="Usuario"
-            value={user}
-            onChange={(e) => setUser(e.target.value.trim())}
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value.trim())}
             autoCapitalize="none"
             autoCorrect="off"
-            autoComplete="username"
+            autoComplete="email"
             spellCheck={false}
             className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none focus:border-cyan-400/50"
           />
           <input
             type="password"
             placeholder="Contraseña"
-            value={pass}
-            onChange={(e) => setPass(e.target.value)}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             autoCapitalize="none"
             autoCorrect="off"
             autoComplete="current-password"
@@ -116,9 +132,10 @@ function LoginScreen({ onLogin }) {
           {err && <p className="text-red-400 text-sm">{err}</p>}
           <button
             type="submit"
-            className="w-full bg-cyan-400 hover:bg-cyan-300 text-black font-black py-3 rounded-xl text-sm transition-colors"
+            disabled={loading}
+            className="w-full bg-cyan-400 hover:bg-cyan-300 disabled:opacity-50 text-black font-black py-3 rounded-xl text-sm transition-colors"
           >
-            Ingresar →
+            {loading ? "Ingresando..." : "Ingresar →"}
           </button>
         </form>
 
@@ -879,10 +896,23 @@ function GymSelector({ operator, onLogout }) {
 export default function GymPassPanel() {
   const { gymId = "default" } = useParams();
   const [operator, setOperator] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [tab, setTab] = useState("scanner");
   const [memberCount, setMemberCount] = useState(0);
   const [logCount, setLogCount] = useState(0);
   const [gymInfo, setGymInfo] = useState(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setOperator({ username: user.email, role: "admin", label: user.email });
+      } else {
+        setOperator(null);
+      }
+      setAuthLoading(false);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     async function loadGymInfo() {
@@ -908,10 +938,11 @@ export default function GymPassPanel() {
     loadCounts();
   }, [operator, gymId]);
 
-  if (!operator) return <LoginScreen onLogin={setOperator} />;
+  if (authLoading) return null;
+  if (!operator) return <LoginScreen />;
 
   // Sin gymId específico → mostrar selector de gyms
-  if (gymId === "default") return <GymSelector operator={operator} onLogout={() => setOperator(null)} />;
+  if (gymId === "default") return <GymSelector operator={operator} onLogout={() => signOut(auth)} />;
 
   const gymColor = gymInfo?.color || "#22d3ee";
 
@@ -944,7 +975,7 @@ export default function GymPassPanel() {
               <span className="text-xs text-slate-300 font-semibold">{operator.label}</span>
             </div>
             <button
-              onClick={() => setOperator(null)}
+              onClick={() => signOut(auth)}
               className="text-xs text-slate-500 hover:text-red-400 transition-colors px-3 py-1.5 border border-white/10 rounded-full hover:border-red-400/30"
             >
               Salir
